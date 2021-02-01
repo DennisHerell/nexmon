@@ -416,12 +416,12 @@ main(int argc, char **argv)
             ret = nex_ioctl(nexio, WLC_SET_VAR, charbuf, 13, true);
     }
 
-    if (custom_cmd_set != -1) {
-        custom_cmd_buf = malloc(custom_cmd_buf_len);
-        if (!custom_cmd_buf)
+    if (custom_cmd_set != -1) { // default 0, for -g (get custom command), custom_cmd_set = -1. For -s, 1
+        custom_cmd_buf = malloc(custom_cmd_buf_len); // allocate memory to custom_cmd_buf
+        if (!custom_cmd_buf) // if custom_cmd_buf = 0, return -1 (end the main in nexutil)
             return -1;
 
-        memset(custom_cmd_buf, 0, custom_cmd_buf_len);
+        memset(custom_cmd_buf, 0, custom_cmd_buf_len); // put unsigned char of 0 to every slot (?) in custom_cmd_buf
 
         if (custom_cmd_set == 1 && raw_output) { // set command using raw input
             //freopen(NULL, "rb", stdin);
@@ -430,10 +430,10 @@ main(int argc, char **argv)
             if (custom_cmd_value) {
                 if (custom_cmd_value_int) {
                     *(uint32 *) custom_cmd_buf = strtoul(custom_cmd_value, NULL, 0);
-                } else if (custom_cmd_value_base64) {
+                } else if (custom_cmd_value_base64) { // what executed in nexmon_csi
                     size_t decoded_len = 0;
                     unsigned char *decoded = b64_decode_ex(custom_cmd_value, strlen(custom_cmd_value), &decoded_len);
-                    memcpy(custom_cmd_buf, decoded, MIN(decoded_len, custom_cmd_buf_len));
+                    memcpy(custom_cmd_buf, decoded, MIN(decoded_len, custom_cmd_buf_len)); //copy decoded string into custom_cmd_buf
                 } else {
                     strncpy(custom_cmd_buf, custom_cmd_value, custom_cmd_buf_len);
                 }
