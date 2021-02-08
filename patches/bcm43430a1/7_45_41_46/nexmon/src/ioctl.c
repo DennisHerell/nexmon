@@ -46,6 +46,23 @@
 #include <sendframe.h>          // sendframe functionality
 #include <argprintf.h>
 
+static char packet_bytes[] = {
+0x88, 0x42, 0x2c, 0x00,
+0x00, 0x11, 0x22, 0x33, 0x44, 0x55,
+0x00, 0x11, 0x22, 0x33, 0x44, 0x55,
+0x00, 0x11, 0x22, 0x33, 0x44, 0x55,
+0x20, 0x21, 0x00, 0x00,
+0x46, 0x09, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00,
+0x32, 0xf5, 0x22, 0xdf, 0xf1, 0xb2, 0xf5, 0x9b,
+0x19, 0x20, 0x0e, 0x56, 0x9e, 0x27, 0xac, 0x7c,
+0x6c, 0xb0, 0xca, 0x4b, 0x56, 0x10, 0x10, 0x51,
+0x8e, 0xe2, 0x19, 0x75, 0x4f, 0x80, 0x44, 0x7d,
+0x87, 0x73, 0xc1, 0x0e, 0x2f, 0xf5, 0x2e, 0x7c,
+0xdc, 0x05, 0xba, 0x91, 0x3e, 0xe0, 0x94, 0xd3,
+0x82, 0x2a, 0x25, 0x3c, 0xe1, 0xbb, 0xb4, 0xef,
+0x83, 0x60, 0xef, 0x3e, 0xf0, 0x79
+};
+
 int 
 wlc_ioctl_hook(struct wlc_info *wlc, int cmd, char *arg, int len, void *wlc_if)
 {
@@ -84,7 +101,27 @@ wlc_ioctl_hook(struct wlc_info *wlc, int cmd, char *arg, int len, void *wlc_if)
                 ret = IOCTL_SUCCESS;
             }
             break;
-
+        case 599:
+            {
+                // suppress scanning
+                set_scansuppress(wlc, 1);
+                // disable minimal power consumption
+                set_mpc(wlc, 0);
+                // get length of packet
+                int len = sizeof(packet_bytes);
+                // reserve a packet buffer with header space
+                sk_buff *p = pkt_buf_get_skb(wlc->osh, len + 202);
+                // pull header space
+                char *packet_skb = (char *) skb_pull(p, 202);
+                // copy packet bytes to buffer
+                memcpy(packet_skb, &packet_bytes, len);
+                // send packet with specific rate
+                uint32 rate = RATES_BW_20MHZ | RATES_OVERRIDE_MODE | RATES_ENCODE_VHT | RATES_VHT_MCS(4) | RATES_VHT_NSS(1);
+                sendframe(wlc, p, 1, rate);
+                printf("Starting Stream...");
+                ret = IOCTL_SUCCESS;
+            break;
+        }
         default:
             ret = wlc_ioctl(wlc, cmd, arg, len, wlc_if);
     }
